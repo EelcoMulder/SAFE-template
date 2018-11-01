@@ -29,18 +29,29 @@ let storageAccount = tryGetEnv "STORAGE_CONNECTIONSTRING" |> Option.defaultValue
 let publicPath = Path.GetFullPath "../Client/public"
 //#endif
 let port = 8085us
-
+#if (application == "counter")
 let getInitCounter () : Task<Counter> = task { return 42 }
+#else
+let getInitMessage () : Task<Message> = task { return "Pong" }
+#endif
 #if (remoting)
-
+#if (application == "counter")
 let counterApi = {
     initialCounter = getInitCounter >> Async.AwaitTask
 }
-
+#else
+let messageApi = {
+    initialMessage = getInitMessage >> Async.AwaitTask
+}
+#endif
 let webApp =
     Remoting.createApi()
     |> Remoting.withRouteBuilder Route.builder
+#if (application == "counter")
     |> Remoting.fromValue counterApi
+#else
+    |> Remoting.fromValue messageApi
+#endif
     |> Remoting.buildHttpHandler
 
 #else
@@ -48,8 +59,13 @@ let webApp =
     route "/api/init" >=>
         fun next ctx ->
             task {
+#if (application == "counter")
                 let! counter = getInitCounter()
                 return! Successful.OK counter next ctx
+#else
+                let! message = getInitMessage()
+                return! Successful.OK message next ctx
+#endif
             }
 #endif
 

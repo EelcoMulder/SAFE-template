@@ -23,15 +23,23 @@ open Fulma.FontAwesome
 // in this case, we are keeping track of a counter
 // we mark it as optional, because initially it will not be available from the client
 // the initial value will be requested from server
+#if (application == "counter")
 type Model = { Counter: Counter option }
-
+#else
+type Model = { Message: Message option }
+#endif
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
+#if (application == "counter")
 type Msg =
 | Increment
 | Decrement
 | InitialCountLoaded of Result<Counter, exn>
-
+#else
+type Msg =
+| CallMessageApi
+| MessageLoaded of Result<Message, exn>
+#endif
 
 #if (remoting)
 module Server =
@@ -40,14 +48,21 @@ module Server =
     open Fable.Remoting.Client
 
     /// A proxy you can use to talk to server directly
+#if (application == "counter")
     let api : ICounterApi =
       Remoting.createApi()
       |> Remoting.withRouteBuilder Route.builder
       |> Remoting.buildProxy<ICounterApi>
-
+#else
+    let api : IMessageApi =
+      Remoting.createApi()
+      |> Remoting.withRouteBuilder Route.builder
+      |> Remoting.buildProxy<IMessageApi>
+#endif
 #endif
 
 // defines the initial state and initial command (= side-effect) of the application
+#if (application == "counter")
 let init () : Model * Cmd<Msg> =
     let initialModel = { Counter = None }
     let loadCountCmd =
@@ -65,10 +80,31 @@ let init () : Model * Cmd<Msg> =
             (Error >> InitialCountLoaded)
 #endif
     initialModel, loadCountCmd
+#else
+let loadMessage =
+#if remoting
+    Cmd.ofAsync
+        Server.api.initialMessage
+        ()
+        (Ok >> MessageLoaded)
+        (Error >> MessageLoaded)
+#else
+    Cmd.ofPromise
+        (fetchAs<Message> "/api/init" Decode.string)
+        []
+        (Ok >> MessageLoaded)
+        (Error >> MessageLoaded)
+#endif
+let init () : Model * Cmd<Msg> =
+    let initialModel = { Message = None }
+    initialModel, Cmd.none
+#endif
+
 
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
+#if (application == "counter")
 let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     match currentModel.Counter, msg with
     | Some x, Increment ->
@@ -82,8 +118,17 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel, Cmd.none
 
     | _ -> currentModel, Cmd.none
-
-
+#else
+let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
+    match msg with
+    | CallMessageApi ->
+        currentModel, loadMessage
+    | MessageLoaded  (Ok initialMessage) -> 
+        let nextModel = { currentModel with Message = Some initialMessage }
+        nextModel, Cmd.none
+    | _ -> currentModel, Cmd.none
+#endif
+#if (application == "counter")
 let safeComponents =
     let components =
         span [ ]
@@ -800,7 +845,25 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 [ column model dispatch ] ] ]
 
 #endif
-
+#else
+let showMessage m =
+    match m.Message with
+    | Some m -> m
+    | None -> "..."
+let view (model : Model) (dispatch : Msg -> unit) =
+    Field.div [ Field.IsGrouped ]
+        [ 
+          Control.div [ ]
+                [ Button.a
+                    [ Button.Color IsPrimary
+                      Button.OnClick (fun _ -> dispatch CallMessageApi) ]
+                    [ str "Ping" ] ]             
+          Control.div [ ]
+            [ Input.text
+                [ Input.Disabled true
+                  Input.Value (showMessage model) ] ]
+        ]
+#endif
 
 //-:cnd:noEmit
 #if DEBUG

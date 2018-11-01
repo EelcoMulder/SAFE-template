@@ -124,6 +124,21 @@
                     "description": "additional FAKE targets to bundle and build Docker image"
                 }
             ]
+        },
+        "application": {
+            "type": "parameter",
+            "dataType": "choice",
+            "defaultValue": "counter",
+            "choices": [
+                {
+                    "choice": "counter",
+                    "description": "create the counter application"
+                },
+                {
+                    "choice": "blankish",
+                    "description": "create an as empty as possible application"
+                }
+            ]
         }
     },
     "sources": [

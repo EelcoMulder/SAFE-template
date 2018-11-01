@@ -27,25 +27,44 @@ let publicPath = Path.GetFullPath "../Client/public"
 //#endif
 let port = 8085us
 
-let getInitCounter() : Task<Counter> = task { return 42 }
+#if (application == "counter")
+let getInitCounter () : Task<Counter> = task { return 42 }
+#else
+let getInitMessage () : Task<Message> = task { return "Pong" }
+#endif
 
 #if (remoting)
+#if (application == "counter")
 let counterApi = {
     initialCounter = getInitCounter >> Async.AwaitTask
 }
+#else
+let messageApi = {
+    initialMessage = getInitMessage >> Async.AwaitTask
+}
+#endif
 
 let webApp =
     Remoting.createApi()
     |> Remoting.withRouteBuilder Route.builder
+#if (application == "counter")
     |> Remoting.fromValue counterApi
+#else
+    |> Remoting.fromValue messageApi
+#endif
     |> Remoting.buildHttpHandler
 
 #else
 let webApp = router {
     get "/api/init" (fun next ctx ->
         task {
-            let! counter = getInitCounter()
-            return! Successful.OK counter next ctx
+#if (application == "counter")
+                let! counter = getInitCounter()
+                return! Successful.OK counter next ctx
+#else
+                let! message = getInitMessage()
+                return! Successful.OK message next ctx
+#endif
         })
 }
 

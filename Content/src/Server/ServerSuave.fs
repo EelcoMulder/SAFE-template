@@ -30,25 +30,42 @@ let config =
     { defaultConfig with
           homeFolder = Some publicPath
           bindings = [ HttpBinding.create HTTP (IPAddress.Parse "0.0.0.0") port ] }
-
+#if (application == "counter")
 let getInitCounter() : Async<Counter> = async { return 42 }
+#else
+let getInitMessage() : Async<Message> = async { return "Pong" }
+#endif
 #if (remoting)
+#if (application == "counter")
 let counterApi = {
     initialCounter = getInitCounter
 }
-
+#else
+let messageApi = {
+    initialMessage = getInitMessage
+}
+#endif
 let webApi =
     Remoting.createApi()
     |> Remoting.withRouteBuilder Route.builder
+#if (application == "counter")
     |> Remoting.fromValue counterApi
+#else
+    |> Remoting.fromValue messageApi
+#endif
     |> Remoting.buildWebPart
 #else
 let webApi =
     path "/api/init" >=>
         fun ctx ->
             async {
+#if (application == "counter")
                 let! counter = getInitCounter()
                 return! OK (string counter) ctx
+#else
+                let! message = getInitMessage()
+                return! OK (string message) ctx
+#endif
             }
 #endif
 
