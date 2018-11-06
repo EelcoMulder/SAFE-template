@@ -56,12 +56,14 @@ let webApp =
 
 #else
 let webApp = router {
+#if (application == "counter")
     get "/api/init" (fun next ctx ->
         task {
-#if (application == "counter")
                 let! counter = getInitCounter()
                 return! Successful.OK counter next ctx
 #else
+    get "/api/message" (fun next ctx ->
+        task {
                 let! message = getInitMessage()
                 return! Successful.OK message next ctx
 #endif

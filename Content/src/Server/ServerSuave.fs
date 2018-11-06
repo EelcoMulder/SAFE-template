@@ -56,13 +56,16 @@ let webApi =
     |> Remoting.buildWebPart
 #else
 let webApi =
+#if (application == "counter")
     path "/api/init" >=>
         fun ctx ->
             async {
-#if (application == "counter")
                 let! counter = getInitCounter()
                 return! OK (string counter) ctx
 #else
+    path "/api/message" >=>
+        fun ctx ->
+            async {
                 let! message = getInitMessage()
                 let json = message |> toJson<Message> |> System.Text.Encoding.UTF8.GetString
                 return! OK (json) ctx

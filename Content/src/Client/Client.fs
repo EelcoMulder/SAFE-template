@@ -41,7 +41,6 @@ type Msg =
 | CallMessageApi
 | MessageLoaded of Result<Message, exn>
 #endif
-
 #if (remoting)
 module Server =
 
@@ -82,7 +81,6 @@ let init () : Model * Cmd<Msg> =
 #endif
     initialModel, loadCountCmd
 #else
-
 let loadMessage =
 #if remoting
     Cmd.ofAsync
@@ -92,17 +90,15 @@ let loadMessage =
         (Error >> MessageLoaded)
 #else
     Cmd.ofPromise
-        (fetchAs<Message> "/api/init" Decode.string)
+        (fetchAs<Message> "/api/message" Decode.string)
         []
         (Ok >> MessageLoaded)
         (Error >> MessageLoaded)
 #endif
-
 let init () : Model * Cmd<Msg> =
     let initialModel = { Message = None }
     initialModel, Cmd.none
 #endif
-
 #if (application == "counter")
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
@@ -130,7 +126,6 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel, Cmd.none
     | _ -> currentModel, Cmd.none
 #endif
-
 #if (application == "counter")
 let safeComponents =
     let components =
