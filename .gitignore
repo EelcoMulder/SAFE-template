@@ -7,3 +7,4 @@ Content/paket.lock
 bin/
 gen-paket-lock-files/
 /.vs
+.ionide/symbolCache.db
