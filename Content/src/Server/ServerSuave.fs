@@ -64,7 +64,8 @@ let webApi =
                 return! OK (string counter) ctx
 #else
                 let! message = getInitMessage()
-                return! OK (string message) ctx
+                let json = message |> toJson<Message> |> System.Text.Encoding.UTF8.GetString
+                return! OK (json) ctx
 #endif
             }
 #endif
